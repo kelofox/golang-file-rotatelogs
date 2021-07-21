@@ -1,4 +1,4 @@
-module github.com/kelofox/file-rotatelogs
+module github.com/kelofox/golang-file-rotatelogs
 
 go 1.12
 
