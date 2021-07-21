@@ -3,7 +3,7 @@ package rotatelogs
 import (
 	"time"
 
-	"github.com/kelofox/file-rotatelogs/internal/option"
+	"github.com/kelofox/golang-file-rotatelogs/internal/option"
 )
 
 const (
