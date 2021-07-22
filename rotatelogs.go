@@ -152,19 +152,27 @@ func (rl *RotateLogs) getWriterNolock(bailOnRotateFail, useGenerationalNames boo
 		// A new file has been requested. Instead of just using the
 		// regular strftime pattern, we create a new file name using
 		// generational names such as "foo.1", "foo.2", "foo.3", etc
-		var name string
-		for {
-			if generation == 0 {
-				name = filename
+		// fmt.Println("generation before : ", generation)
+		var newName string
+		var preName string
+		// fmt.Println("generation after : ", generation)
+		// size分割檔案改名
+		for i := int(rl.rotationCount); i > 0; i-- {
+			if i-1 == 0 {
+				preName = filename
 			} else {
-				name = fmt.Sprintf("%s.%d", filename, generation)
+				preName = fmt.Sprintf("%s.%d", filename, i-1)
 			}
-			if _, err := os.Stat(name); err != nil {
-				filename = name
-
-				break
+			// fmt.Println("i : ", i)
+			// fmt.Println("preName : ", preName)
+			if _, sErr := os.Stat(preName); sErr == nil {
+				newName = fmt.Sprintf("%s.%d", filename, i)
+				// fmt.Println("newName : ", newName)
+				err := os.Rename(preName, newName)
+				if err != nil {
+					break
+				}
 			}
-			generation++
 		}
 	}
 
@@ -315,14 +323,12 @@ func (rl *RotateLogs) rotateNolock(filename string) error {
 	}
 
 	// 修正使用WithRotationSize時，WithRotationCount失效問題
-	if rl.generation != 0 {
-		newPattern := rl.globPattern + ".*"
-		sizeMatches, err := filepath.Glob(newPattern)
-		if err != nil {
-			return err
-		}
+	newPattern := rl.globPattern + ".*"
+	sizeMatches, err := filepath.Glob(newPattern)
+	if err == nil {
 		matches = append(matches, sizeMatches...)
 	}
+	// fmt.Println("matches : ", matches)
 
 	cutoff := rl.clock.Now().Add(-1 * rl.maxAge)
 
@@ -354,14 +360,16 @@ func (rl *RotateLogs) rotateNolock(filename string) error {
 		toUnlink = append(toUnlink, path)
 	}
 
+	// fmt.Println("toUnlink before : ", toUnlink)
+
 	if rl.rotationCount > 0 {
 		// Only delete if we have more than rotationCount
 		if rl.rotationCount >= uint(len(toUnlink)) {
 			return nil
 		}
-
-		toUnlink = toUnlink[:len(toUnlink)-int(rl.rotationCount)]
+		toUnlink = toUnlink[int(rl.rotationCount):]
 	}
+	// fmt.Println("toUnlink after : ", toUnlink)
 
 	if len(toUnlink) <= 0 {
 		return nil
