@@ -325,6 +325,20 @@ func (rl *RotateLogs) rotateNolock(filename string) error {
 	// 修正使用WithRotationSize時，WithRotationCount失效問題
 	newPattern := rl.globPattern + ".*"
 	sizeMatches, err := filepath.Glob(newPattern)
+	// 依照檔名尾端數字排序小>大(泡沫排序法)
+	for i := 0; i < len(sizeMatches); i++ {
+		for j := 1; j < len(sizeMatches)-i; j++ {
+			cfArr := strings.Split(sizeMatches[j], ".")
+			cf, _ := strconv.Atoi(cfArr[len(cfArr)-1])
+			pcfArr := strings.Split(sizeMatches[j-1], ".")
+			pcf, _ := strconv.Atoi(pcfArr[len(pcfArr)-1])
+			if cf < pcf {
+				// 交換
+				sizeMatches[j], sizeMatches[j-1] = sizeMatches[j-1], sizeMatches[j]
+			}
+		}
+	}
+
 	if err == nil {
 		matches = append(matches, sizeMatches...)
 	}
